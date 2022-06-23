@@ -4,6 +4,7 @@ const { response } = require('express')
 const morgan = require('morgan')
 const app = express()
 const cors = require('cors')
+app.use(express.static('build'))
 app.use(express.json())
 morgan.token('type', function (req, res) { return JSON.stringify(req.body) })
 app.use(morgan('tiny'))
@@ -15,22 +16,22 @@ app.use(cors())
 let persons = [
     {
       id: 1,
-      content: "Arto Hellas",
+      name: "Arto Hellas",
       number: "040-123456"
     },
     {
         id: 2,
-        content: "Ada Lovelace",
+        name: "Ada Lovelace",
         number: "39-44-532344"
     },
     {
         id: 3,
-        content: "Dan Abramov",
+        name: "Dan Abramov",
         number: "12-43-123145"
     },
     {
       id: 4,
-      content: "Mary Poppins",
+      name: "Mary Poppins",
       number: "39-9931222"
     },
   ]
