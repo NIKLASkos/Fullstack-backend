@@ -7,7 +7,7 @@ const app = express()
 const cors = require('cors')
 app.use(express.static('build'))
 app.use(express.json())
-morgan.token('type', function (req, res) { return JSON.stringify(req.body) })
+morgan.token('type', function (req) { return JSON.stringify(req.body) })
 app.use(morgan('tiny'))
 app.use(morgan(':type'))
 app.use(cors())
@@ -16,45 +16,45 @@ app.use(cors())
 app.get('/api/persons/:id', (req, res, next) => {
   console.log('id',req.params.id)
   Person.findById(req.params.id)
-  .then( person => {
-    console.log('person =', person)
-    if (person) {
-      res.json(person)
-    } else {
-      res.status(404).end()
-    }
-  })
-  .catch( error => next(error))
+    .then( person => {
+      console.log('person =', person)
+      if (person) {
+        res.json(person)
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch( error => next(error))
 })
 
-  app.get('/api/persons', (req, res) => {
-    Person.find({}).then( persons => {
-      res.json(persons)
-    })
+app.get('/api/persons', (_req, res) => {
+  Person.find({}).then( persons => {
+    res.json(persons)
   })
+})
 
-  app.get('/info', (req, res) => {
-    console.log('testi',Date.now().toString())
-    Person.find({}).then( persons => {
-      const length = persons.length
-      res.send( 
-        `<p>This phonebook has info for ${length} people.</p>
+app.get('/info', (_req, res) => {
+  console.log('testi',Date.now().toString())
+  Person.find({}).then( persons => {
+    const length = persons.length
+    res.send( 
+      `<p>This phonebook has info for ${length} people.</p>
         <p>${new Date().toUTCString()}</p>`
-      )
-    })
+    )
   })
+})
 
-  //Datan poistaminen
+//Datan poistaminen
 app.delete('/api/persons/:id', (req, res, next) => {
   const id = req.params.id
   Person.findByIdAndRemove(id)
-  .then( deleted => {
-    res.status(204).end()
-  })
-  .catch( error => next(error))
+    .then( () => {
+      res.status(204).end()
+    })
+    .catch( error => next(error))
 })
 
-  //Datan lisääminen
+//Datan lisääminen
   
 app.post('/api/persons', (req, res, next) => {
   const body = req.body
@@ -81,13 +81,13 @@ app.put('/api/persons/:id', (req, res, next) => {
     { name, number}, 
     { new: true, runValidators: true, context: 'query'}
   )
-  .then( updated => {
-    res.json(updated)
-  })
-  .catch( error => next(error))
+    .then( updated => {
+      res.json(updated)
+    })
+    .catch( error => next(error))
 })
 
-const errorHandler = (error, req, res, next) => {
+const errorHandler = (error, _req, res, next) => {
   console.log(error.message)
 
   if (error.name === 'CastError') {
@@ -98,7 +98,7 @@ const errorHandler = (error, req, res, next) => {
   }
   
   
-next(error)
+  next(error)
 }
 app.use(errorHandler)
 
