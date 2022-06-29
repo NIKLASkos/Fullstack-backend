@@ -1,6 +1,7 @@
-const http = require('http')
+require('dotenv').config()
+const Person = require('./models/person')
+
 const express = require('express')
-const { response } = require('express')
 const morgan = require('morgan')
 const app = express()
 const cors = require('cors')
@@ -11,84 +12,97 @@ app.use(morgan('tiny'))
 app.use(morgan(':type'))
 app.use(cors())
 
-
-
-let persons = [
-    {
-      id: 1,
-      name: "Arto Hellas",
-      number: "040-123456"
-    },
-    {
-        id: 2,
-        name: "Ada Lovelace",
-        number: "39-44-532344"
-    },
-    {
-        id: 3,
-        name: "Dan Abramov",
-        number: "12-43-123145"
-    },
-    {
-      id: 4,
-      name: "Mary Poppins",
-      number: "39-9931222"
-    },
-  ]
-  const length = persons.length
   
-  app.get('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
-    if (person) res.json(person)
-    else res.status(404).end()
+app.get('/api/persons/:id', (req, res, next) => {
+  console.log('id',req.params.id)
+  Person.findById(req.params.id)
+  .then( person => {
+    console.log('person =', person)
+    if (person) {
+      res.json(person)
+    } else {
+      res.status(404).end()
+    }
   })
+  .catch( error => next(error))
+})
 
   app.get('/api/persons', (req, res) => {
-    res.json(persons)
+    Person.find({}).then( persons => {
+      res.json(persons)
+    })
   })
 
   app.get('/info', (req, res) => {
     console.log('testi',Date.now().toString())
-    res.send( 
+    Person.find({}).then( persons => {
+      const length = persons.length
+      res.send( 
         `<p>This phonebook has info for ${length} people.</p>
         <p>${new Date().toUTCString()}</p>`
-    )
+      )
+    })
   })
 
   //Datan poistaminen
-  app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    persons = persons.filter( person => person.id !== id)
-
+app.delete('/api/persons/:id', (req, res, next) => {
+  const id = req.params.id
+  Person.findByIdAndRemove(id)
+  .then( deleted => {
     res.status(204).end()
   })
+  .catch( error => next(error))
+})
 
   //Datan lisääminen
-  app.post('/api/persons', (req, res) => {
-    console.log('request headers', req.headers)
-    const id = Math.floor(Math.random()*1000)
-    const person = req.body
+  
+app.post('/api/persons', (req, res, next) => {
+  const body = req.body
 
-    if (!person.name || !person.number) {
-      return res.status(400).json(
-        { error: 'The person must have a name and a number'}
-      )
-    }
-    if (persons.find(existingPerson => existingPerson.name === person.name)) {
-      return res.status(400).json(
-        { error: 'this person already exists' }
-      )
-    }
-    person.id = id
-
-    persons = persons.concat(person)
-    res.json(person)
+  const person = new Person({
+    name: body.name,
+    number: body.number,
   })
-  
-  
 
-const PORT = process.env.PORT || 3001
+  person.save()
+    .then(savedPerson => {
+      res.json(savedPerson)
+    })
+    .catch( error => next(error) )
+})
+
+//datan päivittäminen
+app.put('/api/persons/:id', (req, res, next) => {
+
+  const { name, number } = req.body
+
+  Person.findByIdAndUpdate(
+    req.params.id, 
+    { name, number}, 
+    { new: true, runValidators: true, context: 'query'}
+  )
+  .then( updated => {
+    res.json(updated)
+  })
+  .catch( error => next(error))
+})
+
+const errorHandler = (error, req, res, next) => {
+  console.log(error.message)
+
+  if (error.name === 'CastError') {
+    return res.status(400).send( { error: 'malformatted id' })
+  } 
+  else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
+  
+  
+next(error)
+}
+app.use(errorHandler)
+
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
